@@ -17,7 +17,7 @@
 - macOS（Intel / Apple 芯片，macOS 13+）：[`CampusSplitVPN/dist/校园VPN分流助手-macOS-universal.zip`](dist/校园VPN分流助手-macOS-universal.zip)
 - Windows x64 压缩包：[`CampusSplitVPN/dist/校园VPN分流助手-Windows-x64.zip`](dist/校园VPN分流助手-Windows-x64.zip)
 - Windows x64 单独程序：[`CampusSplitVPN/dist/校园VPN分流助手-Windows-x64.exe`](dist/校园VPN分流助手-Windows-x64.exe)
-
+PS：主包没测试过win，因为身边没有win的电脑
 一般推荐下载对应系统的 ZIP。macOS 解压后得到 `校园VPN分流助手.app`；Windows 解压后得到 `校园VPN分流助手.exe`，不需要另外安装 Go、Python 或其他运行环境。
 
 ### 操作步骤
@@ -29,6 +29,8 @@
 5. 显示成功后，再打开日常使用的其他 VPN/代理。
 
 “恢复路由”会撤销本工具保存的临时改动。直接断开 VPN、重新联网或重启电脑通常也能恢复。若校园 VPN 客户端持续强制改写路由，可在软件中重新应用，但这类客户端可能无法稳定共存。
+
+关闭控制网页后，软件会在约 2 秒内自动退出，但已经应用的分流路由会继续有效。之后重新打开软件，它会读取先前保存的状态，仍可检查或恢复路由。网页内的“退出程序”按钮同样只退出软件，不会撤销路由；如需撤销，请先点击“恢复路由”。软件不使用系统托盘，也不会在后台长期驻留。
 
 当前安装包未使用付费开发者证书。macOS 首次运行若拦截，打开设置-安全与隐私-最下面-仍要打开；Windows 若显示 SmartScreen，请先核对文件来源，再选择“更多信息 → 仍要运行”。macOS 通用版支持 Intel 与 Apple 芯片，最低系统版本为 macOS 13；Windows 版为 x64。
 

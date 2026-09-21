@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -151,9 +152,15 @@ func checkStatus(rawTargets, stateFile string) OperationResult {
 }
 
 type webServer struct {
-	stateFile string
-	token     string
-	server    *http.Server
+	stateFile       string
+	token           string
+	server          *http.Server
+	shutdown        func() error
+	lifecycleMu     sync.Mutex
+	activePages     int
+	lifecycleSerial uint64
+	exiting         bool
+	closeDelay      time.Duration
 }
 
 func runWebApp(stateFile string) error {
@@ -169,7 +176,9 @@ func runWebApp(stateFile string) error {
 	mux.HandleFunc("/api/"+token+"/apply", app.apply)
 	mux.HandleFunc("/api/"+token+"/restore", app.restore)
 	mux.HandleFunc("/api/"+token+"/quit", app.quit)
+	mux.HandleFunc("/api/"+token+"/lifetime", app.lifetime)
 	app.server = &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
+	app.shutdown = app.server.Close
 	url := "http://" + listener.Addr().String() + "/?token=" + token
 	go func() {
 		time.Sleep(250 * time.Millisecond)
@@ -224,11 +233,93 @@ func (a *webServer) restore(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *webServer) quit(w http.ResponseWriter, r *http.Request) {
-	a.respond(w, OperationResult{OK: true, Message: "程序已关闭，可以关闭本页。"})
+	a.respond(w, OperationResult{OK: true, Message: "程序已退出；已经应用的分流路由保持不变。"})
 	go func() {
 		time.Sleep(100 * time.Millisecond)
-		_ = a.server.Close()
+		a.requestShutdown()
 	}()
+}
+
+// lifetime keeps one streaming HTTP request open for each control page. When
+// the last browser page disappears, its request context is cancelled and the
+// application exits after a short reload grace period. Kernel routes are not
+// tied to this process, so an applied split route remains in place.
+func (a *webServer) lifetime(w http.ResponseWriter, r *http.Request) {
+	flusher, ok := w.(http.Flusher)
+	if !ok {
+		http.Error(w, "Streaming unsupported", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/event-stream")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Header().Set("X-Accel-Buffering", "no")
+
+	if !a.pageConnected() {
+		http.Error(w, "Application exiting", http.StatusGone)
+		return
+	}
+
+	_, _ = io.WriteString(w, ": connected\n\n")
+	flusher.Flush()
+	<-r.Context().Done()
+	a.pageDisconnected()
+}
+
+func (a *webServer) pageConnected() bool {
+	a.lifecycleMu.Lock()
+	defer a.lifecycleMu.Unlock()
+	if a.exiting {
+		return false
+	}
+	a.activePages++
+	a.lifecycleSerial++
+	return true
+}
+
+func (a *webServer) pageDisconnected() {
+	a.lifecycleMu.Lock()
+	if a.activePages > 0 {
+		a.activePages--
+	}
+	a.lifecycleSerial++
+	serial := a.lifecycleSerial
+	shouldWait := a.activePages == 0 && !a.exiting
+	a.lifecycleMu.Unlock()
+	if !shouldWait {
+		return
+	}
+	delay := a.closeDelay
+	if delay <= 0 {
+		delay = 2 * time.Second
+	}
+	go func() {
+		time.Sleep(delay)
+		a.lifecycleMu.Lock()
+		if a.activePages != 0 || a.lifecycleSerial != serial || a.exiting {
+			a.lifecycleMu.Unlock()
+			return
+		}
+		a.exiting = true
+		shutdown := a.shutdown
+		a.lifecycleMu.Unlock()
+		if shutdown != nil {
+			_ = shutdown()
+		}
+	}()
+}
+
+func (a *webServer) requestShutdown() {
+	a.lifecycleMu.Lock()
+	if a.exiting {
+		a.lifecycleMu.Unlock()
+		return
+	}
+	a.exiting = true
+	shutdown := a.shutdown
+	a.lifecycleMu.Unlock()
+	if shutdown != nil {
+		_ = shutdown()
+	}
 }
 
 func (a *webServer) respond(w http.ResponseWriter, value any) {

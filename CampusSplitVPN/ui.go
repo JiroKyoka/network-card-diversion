@@ -50,7 +50,7 @@ const indexHTML = `<!doctype html>
       <button class="primary" onclick="applySplit()">一键分流</button>
       <button class="secondary" onclick="checkStatus()">重新检查</button>
       <button class="ghost" onclick="restoreRoutes()">恢复路由</button>
-      <button class="ghost" onclick="quitApp()">关闭程序</button>
+      <button class="ghost" onclick="quitApp()">退出程序</button>
     </div>
     <div id="result"></div>
   </section>
@@ -59,7 +59,7 @@ const indexHTML = `<!doctype html>
     <li><span class="num">2</span><span>点击“一键分流”，同意管理员权限请求。</span></li>
     <li><span class="num">3</span><span>看到“分流完成”后，再开启你平时使用的其他 VPN/代理。</span></li>
   </ol>
-  <footer>所有改动只作用于本机路由；断开 VPN 或重启通常也会恢复网络。</footer>
+  <footer>关闭本网页后程序会自动退出，但已应用的路由会保留；重新打开软件仍可检查或恢复。</footer>
 </main>
 <script>
 const token='__TOKEN__';
@@ -97,6 +97,13 @@ function applySplit(){call('apply','POST')}
 function checkStatus(){call('status')}
 function restoreRoutes(){call('restore','POST')}
 async function quitApp(){await call('quit','POST');buttons.forEach(b=>b.disabled=true)}
+async function holdPageLifetime(){
+  try{
+    const response=await fetch(endpoint('lifetime'),{cache:'no-store'});
+    await response.text();
+  }catch(e){}
+}
+holdPageLifetime();
 checkStatus();
 </script>
 </body>
