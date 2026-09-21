@@ -7,7 +7,10 @@ BUILD_DIR="$PROJECT_DIR/build/release"
 DIST_DIR="$PROJECT_DIR/dist"
 APP_DIR="$BUILD_DIR/校园VPN分流助手.app"
 
-mkdir -p "$BUILD_DIR" "$DIST_DIR"
+mkdir -p "$BUILD_DIR" "$DIST_DIR" "$PROJECT_DIR/assets"
+
+GOCACHE=${GOCACHE:-/tmp/campus-split-gocache} GOPATH=${GOPATH:-/tmp/campus-split-gopath} \
+  "$GO_BIN" run "$PROJECT_DIR/tools/iconmaker" "$PROJECT_DIR/Author.jpg" "$PROJECT_DIR/assets/Author.icns" "$PROJECT_DIR/assets/Author.ico"
 
 GOCACHE=${GOCACHE:-/tmp/campus-split-gocache} GOPATH=${GOPATH:-/tmp/campus-split-gopath} \
   CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 "$GO_BIN" build -trimpath -ldflags="-s -w" -o "$BUILD_DIR/macos-amd64" "$PROJECT_DIR"
@@ -19,6 +22,7 @@ GOCACHE=${GOCACHE:-/tmp/campus-split-gocache} GOPATH=${GOPATH:-/tmp/campus-split
 mkdir -p "$APP_DIR/Contents/MacOS" "$APP_DIR/Contents/Resources"
 lipo -create "$BUILD_DIR/macos-amd64" "$BUILD_DIR/macos-arm64" -output "$APP_DIR/Contents/MacOS/CampusSplitVPN"
 cp "$PROJECT_DIR/Info.plist" "$APP_DIR/Contents/Info.plist"
+cp "$PROJECT_DIR/assets/Author.icns" "$APP_DIR/Contents/Resources/Author.icns"
 cp "$PROJECT_DIR/使用说明.txt" "$APP_DIR/Contents/Resources/使用说明.txt"
 chmod 755 "$APP_DIR/Contents/MacOS/CampusSplitVPN"
 codesign --force --deep --sign - "$APP_DIR"
