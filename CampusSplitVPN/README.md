@@ -8,9 +8,21 @@
 
 ## 使用
 
+### 下载路径
+
+进入仓库的 [`CampusSplitVPN/dist`](dist) 目录，根据系统下载：
+
+- macOS（Intel / Apple 芯片，macOS 13+）：[`CampusSplitVPN/dist/校园VPN分流助手-macOS-universal.zip`](dist/校园VPN分流助手-macOS-universal.zip)
+- Windows x64 压缩包：[`CampusSplitVPN/dist/校园VPN分流助手-Windows-x64.zip`](dist/校园VPN分流助手-Windows-x64.zip)
+- Windows x64 单独程序：[`CampusSplitVPN/dist/校园VPN分流助手-Windows-x64.exe`](dist/校园VPN分流助手-Windows-x64.exe)
+
+一般推荐下载对应系统的 ZIP。macOS 解压后得到 `校园VPN分流助手.app`；Windows 解压后得到 `校园VPN分流助手.exe`，不需要另外安装 Go、Python 或其他运行环境。
+
+### 操作步骤
+
 1. 先关闭其他 VPN/代理，只连接校园 VPN（MotionPro）。
 2. 打开软件。macOS 双击 `校园VPN分流助手.app`；Windows 双击 `校园VPN分流助手.exe`。
-3. 校园服务器默认是 `172.25.24.135`，需要时可修改或添加多个地址。
+3. 将默认的 `172.25.24.135` 改成使用者自己的校园服务器 IPv4 地址或网段；如果目标相同则无需修改。
 4. 点击“一键分流”，确认 macOS 管理员密码框或 Windows UAC。
 5. 显示成功后，再打开日常使用的其他 VPN/代理。
 
